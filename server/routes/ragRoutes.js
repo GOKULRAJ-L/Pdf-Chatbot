@@ -3,7 +3,7 @@ import { upload } from '../config/multer.js'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import {ChatGroq} from '@langchain/groq'
-import { HNSWLib } from '@langchain/community/vectorstores/hnswlib'
+import { FaissStore } from "@langchain/community/vectorstores/faiss";
 import { ChatPromptTemplate } from "@langchain/core/prompts"
 import { createStuffDocumentsChain } from "langchain/chains/combine_documents"
 import { createRetrievalChain } from "langchain/chains/retrieval"
@@ -50,7 +50,7 @@ router.post('/chat', async (req, res) => {
       modelName: "gemini-embedding-exp-03-07",
     })
 
-    const vectorstore = await HNSWLib.load(vectorDir, embeddings)
+    const vectorstore = await FaissStore.load(vectorDir, embeddings)
 
     const model = new ChatGroq({
       apiKey: process.env.GROQ_API_KEY,
@@ -59,7 +59,7 @@ router.post('/chat', async (req, res) => {
     })
 
     const prompt = ChatPromptTemplate.fromMessages([
-      ["system", "Use the context below to answer the user's question. Keep it clear and meaningful in reading. And also avoid using accorindg to the context provided or infromation provided . Just give the answer to the context.\nContext:\n{context}"],
+      ["system", "Use the context below to answer the user's question. Keep it clear and meaningful in reading. And also avoid using accorindg to the context provided or infromation provided . Give the answer to the question that realted to context. Any other question that are not realted don't answer to it. Just give an kind reply in 20 words.\nContext:\n{context}"],
       ["human", "{input}"],
     ])
 
@@ -79,6 +79,7 @@ router.post('/chat', async (req, res) => {
         message: result.answer 
     }) 
   } catch (err) {
+    console.log(err);
     res.status(500).json({ error: err.message })
   }
 })
